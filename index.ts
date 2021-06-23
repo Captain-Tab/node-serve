@@ -9,39 +9,34 @@ const server = http.createServer()
 const publicDir = path.resolve(__dirname, 'public')
 const serverOrigin = 'http://localhost:9999';
 
-
 server.on('request', (request: IncomingMessage, response: ServerResponse)=> {
     const { method, url: urlPath, headers} = request
     const url = new URL(request.url, serverOrigin);
     const {pathname} = url
     // Parse the URL query. The leading '?' has to be removed before this.
-    const query = parseQuery(url.search.substr(1));
-    console.log('url',pathname)
-    switch (pathname) {
-        case '/index.html':
-            fs.readFile(path.resolve(publicDir, 'index.html'), (error, data)=> {
-                if (error) throw error
-                response.end(data.toString())
-            })
-            break;
-        case '/style.css':
-            response.setHeader('Content-Type', 'text/css; charset=utf-8')
-            fs.readFile(path.resolve(publicDir, 'style.css'), (error, data)=> {
-                if (error) throw error
-                response.end(data.toString())
-            })
-            break;
-        case '/main.js':
-            response.setHeader('Content-Type', 'text/javascript; charset=utf-8')
-            fs.readFile(path.resolve(publicDir, 'main.js'), (error, data)=> {
-                if (error) throw error
-                response.end(data.toString())
-            })
-            break;
-        default:
-            response.statusCode = 404
-            response.end()
+    const newSearchParams = new URLSearchParams(url.searchParams);
+    console.log('pathname', pathname)
+    let fileName = pathname.substring(1)
+    // response.setHeader('Content-Type', 'text/html; charset=utf-8')
+    if (fileName === '') {
+        fileName = 'index.html'
     }
+    fs.readFile(path.resolve(publicDir, fileName), (error, data)=> {
+        if (error) {
+            console.log(error)
+            if (error.errno === -2) {
+                response.statusCode = 404
+                fs.readFile(path.resolve(publicDir, '404.html'), (error, data)=> {
+                    response.end(data)
+                })
+                response.end('the file is not found')
+            } else  {
+                response.statusCode = 500
+                response.end('server was occupied, please try it later')
+            }
+        }
+        response.end(data)
+    })
 })
 
 server.listen('9999')
