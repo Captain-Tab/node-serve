@@ -7,10 +7,18 @@ const { parse: parseQuery } = require('querystring');
 
 const server = http.createServer()
 const publicDir = path.resolve(__dirname, 'public')
-const serverOrigin = 'http://localhost:9999';
+const serverOrigin = 'http://localhost:9999'
+let cacheAge = 3600 * 24 * 365
 
 server.on('request', (request: IncomingMessage, response: ServerResponse)=> {
     const { method, url: urlPath, headers} = request
+
+    if (method === 'POST') {
+        response.statusCode = 405
+        response.end()
+        return
+    }
+
     const url = new URL(request.url, serverOrigin);
     const {pathname} = url
     // Parse the URL query. The leading '?' has to be removed before this.
@@ -34,8 +42,10 @@ server.on('request', (request: IncomingMessage, response: ServerResponse)=> {
                 response.statusCode = 500
                 response.end('server was occupied, please try it later')
             }
+        } else  {
+            response.setHeader('Cache-Control', `public, max-age=${cacheAge}`)
+            response.end(data)
         }
-        response.end(data)
     })
 })
 
